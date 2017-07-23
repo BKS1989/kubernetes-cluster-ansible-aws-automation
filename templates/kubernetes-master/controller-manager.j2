@@ -1,0 +1,5 @@
+KUBE_CONTROLLER_MANAGER_ARGS="--service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+                              --root-ca-file=/etc/kubernetes/ssl/ca.pem \
+                              --master=http://127.0.0.1:8080 \
+                              --kubeconfig=/etc/kubernetes/cm-kubeconfig.yaml \
+                              --cloud-provider=aws"

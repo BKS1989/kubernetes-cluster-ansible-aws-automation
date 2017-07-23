@@ -1,0 +1,19 @@
+###
+# kubernetes kubelet (minion) config
+# The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
+KUBELET_ADDRESS="--address=0.0.0.0"
+# The port for the info server to serve on
+KUBELET_PORT="--port=10250"
+# You may leave this blank to use the actual hostname
+KUBELET_HOSTNAME="--hostname-override={{kubernetes_hostname}}"
+# location of the api-server
+KUBELET_API_SERVER="--api-servers=https://{{KUBERNETES_MASTER_IP}}:6443"
+# pod infrastructure container
+KUBELET_POD_INFRA_CONTAINER="--pod-infra-container-image=registry.access.redhat.com/rhel7/po
+d-infrastructure:latest"
+# Add your own!
+KUBELET_ARGS="--cluster-dns=10.254.254.250 \
+              --cluster-domain=kubernetes.local \
+              --tls-cert-file=/etc/kubernetes/ssl/worker.pem \
+              --tls-private-key-file=/etc/kubernetes/ssl/worker-key.pem \
+              --kubeconfig=/etc/kubernetes/cm-kubeconfig.yaml"

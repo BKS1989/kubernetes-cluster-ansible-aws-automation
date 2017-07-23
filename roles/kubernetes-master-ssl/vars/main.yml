@@ -1,0 +1,2 @@
+---
+kubernetes_apiserver_ssl: "/etc/kubernetes/ssl"

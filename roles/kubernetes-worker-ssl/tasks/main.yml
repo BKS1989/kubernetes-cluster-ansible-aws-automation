@@ -1,0 +1,67 @@
+---
+- name: get host name and register
+  set_fact:
+    kubernetes_worker_user_dir: "{{hostvars[inventory_hostname]['ansible_user_dir']}}/ssl"
+    kubernetes_worker: "{{hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address']}}"
+    kubernetes_hostname: "{{hostvars[inventory_hostname]['ansible_hostname']}}"
+
+- name: creating "{{kubernetes_worker_user_dir}}" on server
+  file: path="{{kubernetes_worker_user_dir}}" mode=0777 state=directory
+  register: kubernetes_worker_ssl_dir
+
+- debug: msg="{{kubernetes_worker}}"
+
+- name: copy worker-openssl.conf to "{{kubernetes_worker_user_dir}}/ssl"
+  template: src="templates/kubernetes-worker/worker-openssl.cnf.j2" dest="{{kubernetes_worker_user_dir}}/worker-openssl.cnf" mode=644
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+
+- name: copy ca-key.pem
+  copy: src=templates/kubernetes-master/ca-key.pem dest="{{kubernetes_worker_user_dir}}/ca-key.pem" mode=644
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: copy ca.pem
+  copy: src=templates/kubernetes-master/ca.pem dest="{{kubernetes_worker_user_dir}}/ca.pem" mode=644
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: create worker-key.pem
+  shell: openssl genrsa -out worker-key.pem 2048
+  args:
+    chdir: "{{kubernetes_worker_user_dir}}"
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: create worker csr
+  shell: openssl req -new -key worker-key.pem -out worker.csr -subj "/CN={{kubernetes_hostname}}" -config worker-openssl.cnf
+  args:
+    chdir: "{{kubernetes_worker_user_dir}}"
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: create worker.pem
+  shell: openssl x509 -req -in worker.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out worker.pem -days 365 -extensions v3_req -extfile worker-openssl.cnf
+  args:
+    chdir: "{{kubernetes_worker_user_dir}}"
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: creating "{{kubernetes_worker_ssl}}" directory
+  file: path="{{kubernetes_worker_ssl}}" mode=777 state=directory recurse=yes
+  sudo_user: root
+  sudo: true
+  register: kubernetes_worker_ssl_create
+
+- name: copy ca.pem
+  copy: src=templates/kubernetes-master/ca.pem dest="{{kubernetes_worker_ssl}}/ca.pem" mode=644
+  when: "{{kubernetes_worker_ssl_dir.changed}}"
+
+- name: copy ca.pem and worker to "{{kubernetes_worker_ssl}}"
+  shell: cp -r ca.pem worker*.pem "{{kubernetes_worker_ssl}}"
+  sudo_user: root
+  sudo: true
+  args:
+    chdir: "{{kubernetes_worker_user_dir}}"
+  when: "{{kubernetes_worker_ssl_create.changed}}"
+
+- name: kube config template to "{{kubernetes_worker_ssl}}"
+  template: src=templates/kubernetes-worker/cm-kubeconfig.yaml.j2 dest=/etc/kubernetes/cm-kubeconfig.yaml mode=644
+  sudo_user: root
+  sudo: true
+  when: "{{kubernetes_worker_ssl_create.changed}}"

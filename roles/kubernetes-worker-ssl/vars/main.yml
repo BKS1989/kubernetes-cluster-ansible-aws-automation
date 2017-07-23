@@ -1,0 +1,2 @@
+---
+kubernetes_worker_ssl: "/etc/kubernetes/ssl"

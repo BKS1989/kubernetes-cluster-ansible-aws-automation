@@ -1,0 +1,5 @@
+---
+kubernetes_hostname: "{{hostvars[inventory_hostname]['ansible_hostname']}}"
+FLANNEL_ETCD: "http://{{KUBERNETES_MASTER_IP}}:2379"
+FLANNEL_ETCD_KEY: "/kube-centos/network"
+FLANNEL_OPTIONS: ""

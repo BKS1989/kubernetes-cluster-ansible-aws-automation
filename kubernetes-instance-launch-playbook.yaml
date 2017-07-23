@@ -1,0 +1,31 @@
+---
+  - hosts: localhost
+    connection: local
+    vars:
+      vpc_subnet_id: "subnet-f6157592"
+      image: "ami-7d2eab1e"
+      security_group: "sg-7c7ebd1b"
+      region: "ap-southeast-1"
+      key_name: "kubernetes"
+      role: "kuberenetes_aws_role"
+    tasks:
+      - name: launch instance
+        ec2:
+          key_name: "{{key_name}}"
+          group_id: "{{security_group}}"
+          instance_type: t2.micro
+          image: "{{image}}"
+          instance_profile_name: "{{role}}"
+          wait: yes
+          wait_timeout: 500
+          region: "{{region}}"
+          count: 1
+          instance_tags:
+             Name: "{{item.name}}"
+             Group: "{{item.group}}"
+          vpc_subnet_id: "{{vpc_subnet_id}}"
+          assign_public_ip: yes
+        with_items:
+          - { "name": "kubernetes-master",  "group": "kubernetes-master"}
+          - { "name": "kubernetes-worker1",  "group": "kubernetes-worker"}
+          - { "name": "kubernetes-worker2",  "group": "kubernetes-worker"}

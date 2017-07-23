@@ -1,0 +1,73 @@
+---
+- name: get host name and register
+  set_fact:
+    kubernetes_master_user_dir: "{{hostvars[inventory_hostname]['ansible_user_dir']}}/ssl"
+    kubernetes_master: "{{hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address']}}"
+
+- name: creating "{{kubernetes_master_user_dir}}" on server
+  file: path="{{kubernetes_master_user_dir}}" mode=0777 state=directory
+  register: kubernetes_master_ssl_dir
+
+- debug: msg="{{kubernetes_master}}"
+
+- name: create apiserver ssl
+  shell: openssl genrsa -out apiserver-key.pem 2048
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: copy openssl.conf to "{{kubernetes_master_ssl_dir}}/ssl"
+  template: src="templates/kubernetes-master/openssl.cnf.j2" dest="{{kubernetes_master_user_dir}}/openssl.cnf" mode=644
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: create ca-key.pem
+  shell: openssl genrsa -out ca-key.pem 2048
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: create ca.pem
+  shell: openssl req -x509 -new -nodes -key ca-key.pem -days 10000 -out ca.pem -subj "/CN=kube-ca"
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: fetch ca.pem to ansible server
+  fetch: src={{kubernetes_master_user_dir}}/ca.pem dest=templates/kubernetes-master/ flat=yes
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: fetch ca.pem to ansible server
+  fetch: src={{kubernetes_master_user_dir}}/ca-key.pem dest=templates/kubernetes-master/ flat=yes
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: create apiserver private pem key
+  shell: openssl req -new -key apiserver-key.pem -out apiserver.csr -subj "/CN=kube-apiserver" -config openssl.cnf
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: create apiserver ca pem
+  shell: openssl x509 -req -in apiserver.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out apiserver.pem -days 365 -extensions v3_req -extfile openssl.cnf
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_master_ssl_dir.changed}}"
+
+- name: creating "{{kubernetes_apiserver_ssl}}" directory
+  file: path="{{kubernetes_apiserver_ssl}}" mode=777 state=directory recurse=yes
+  sudo_user: root
+  sudo: true
+  register: kubernetes_apiserver_ssl_create
+
+- name: copy ca.pem and api-server to "{{kubernetes_apiserver_ssl}}"
+  shell: cp -r ca.pem apiserver*.pem "{{kubernetes_apiserver_ssl}}"
+  sudo_user: root
+  sudo: true
+  args:
+    chdir: "{{kubernetes_master_user_dir}}"
+  when: "{{kubernetes_apiserver_ssl_create.changed}}"
+
+- name: copy ca.pem and api-server to "{{kubernetes_apiserver_ssl}}"
+  template: src=templates/kubernetes-master/cm-kubeconfig.yaml.j2 dest=/etc/kubernetes/cm-kubeconfig.yaml mode=644
+  sudo_user: root
+  sudo: true
+  when: "{{kubernetes_apiserver_ssl_create.changed}}"

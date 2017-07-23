@@ -1,0 +1,7 @@
+---
+  - hosts: tag_Group_kubernetes_master 
+    remote_user: centos
+    roles:
+      - { role: kubernetes-common, become: true, become_user: root }
+      - { role: kubernetes-master-ssl }
+      - { role: kubernetes-master, become: true, become_user: root }

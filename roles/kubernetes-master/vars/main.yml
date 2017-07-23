@@ -1,0 +1,5 @@
+---
+KUBERNETES_MASTER_IP: "{{hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address']}}"
+FLANNEL_ETCD: "http://{{KUBERNETES_MASTER_IP}}:2379"
+FLANNEL_ETCD_KEY: "/kube-centos/network"
+FLANNEL_OPTIONS: ""

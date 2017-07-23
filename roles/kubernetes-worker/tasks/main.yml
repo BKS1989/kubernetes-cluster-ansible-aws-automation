@@ -1,0 +1,40 @@
+---
+- name: replacing  file content
+  template:
+    src:  templates/kubernetes-worker/kubelet.j2
+    dest: /etc/kubernetes/kubelet
+    owner: root
+    group: root
+    mode: 644
+    
+- name: replacing proxy file content
+  template:
+    src:  templates/kubernetes-worker/proxy.j2
+    dest: /etc/kubernetes/proxy
+    owner: root
+    group: root
+    mode: 644
+
+- name: replace config gile content
+  template:
+    src:  templates/kubernetes-master/config.j2
+    dest: /etc/kubernetes/config
+    owner: root
+    group: root
+    mode: 644
+
+- name: replace content of flanneld
+  template:
+    src:  templates/kubernetes-master/flanneld.j2
+    dest: /etc/sysconfig/flanneld
+    owner: root
+    group: root
+    mode: 644
+
+- name: Start services in the minion
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - kube-proxy
+    - kubelet
+    - flanneld
+    - docker

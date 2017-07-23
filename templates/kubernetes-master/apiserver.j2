@@ -1,0 +1,9 @@
+KUBE_API_ADDRESS="--bind-address=0.0.0.0 --insecure-bind-address=127.0.0.1"
+KUBE_API_PORT="--secure-port=6443 --insecure-port=8080"
+KUBE_ETCD_SERVERS="--etcd-servers=http://{{KUBERNETES_MASTER_IP}}:2379"
+KUBE_SERVICE_ADDRESSES="--service-cluster-ip-range=10.254.0.0/16"
+KUBE_ADMISSION_CONTROL="--admission-control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota"
+KUBE_API_ARGS="--client-ca-file=/etc/kubernetes/ssl/ca.pem \
+               --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+               --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem \
+               --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem"

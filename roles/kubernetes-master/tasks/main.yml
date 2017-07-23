@@ -1,0 +1,64 @@
+---
+- name: replacing etcd.conf
+  template:
+    src:  templates/kubernetes-master/etcd.conf.j2
+    dest: /etc/etcd/etcd.conf
+    owner: root
+    group: root
+    mode: 644
+
+- name: replacing apiserver file content
+  template:
+    src:  templates/kubernetes-master/apiserver.j2
+    dest: /etc/kubernetes/apiserver
+    owner: root
+    group: root
+    mode: 644
+
+- name: replace config gile content
+  template:
+    src:  templates/kubernetes-master/config.j2
+    dest: /etc/kubernetes/config
+    owner: root
+    group: root
+    mode: 644
+
+- name: replace config controller-manager content
+  template:
+    src:  templates/kubernetes-master/controller-manager.j2
+    dest: /etc/kubernetes/controller-manager
+    owner: root
+    group: root
+    mode: 644
+
+
+- name: replace content of flanneld
+  template:
+    src:  templates/kubernetes-master/flanneld.j2
+    dest: /etc/sysconfig/flanneld
+    owner: root
+    group: root
+    mode: 644
+
+- name: replace config scheduler content
+  template:
+    src:  templates/kubernetes-master/scheduler.j2
+    dest: /etc/kubernetes/scheduler
+    owner: root
+    group: root
+    mode: 644
+
+- name: start etcd
+  service: name=etcd state=started
+
+- name: create key in etcd
+  script: templates/etcd.sh
+
+- name: Start etcd, API Server, Controller, Scheduler, Flannel
+  service:   name={{ item }} state=started enabled=yes
+  with_items:
+    - etcd
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - flanneld
